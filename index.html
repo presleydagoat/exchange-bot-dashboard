@@ -3,76 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TACTICAL CONSOLE - EXCHANGE OPERATIONS</title>
+    <title>TACTICAL COMMAND CONSOLE</title>
     <style>
-        :root { --main-bg: #030406; --cyan: #29fcfc; --dark-cyan: #148080; --orange: #fc8a29; --dark-orange: #7c4414; --white: #e1e6ed; }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'OCR A Extended', monospace, 'Courier New'; font-weight: 500; font-size: 11px; text-transform: uppercase; }
+        :root { --main-bg: #030406; --cyan: #29fcfc; --dark-cyan: #148080; --orange: #fc8a29; --dark-orange: #7c4414; --white: #e1e6ed; --red: #ff4d4d; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'OCR A Extended', monospace, 'Courier New'; font-size: 11px; text-transform: uppercase; }
         body { background: var(--main-bg); color: var(--cyan); height: 100vh; overflow: hidden; }
 
         #loginOverlay { position: fixed; inset: 0; background: rgba(3,4,6,0.95); display: flex; justify-content: center; align-items: center; z-index: 2000; }
-        .login-module { background: var(--main-bg); border: 2px solid var(--orange); padding: 30px; border-radius: 4px; width: 340px; box-shadow: 0 0 15px rgba(252,138,41,0.5); }
+        .login-module { background: var(--main-bg); border: 2px solid var(--orange); padding: 30px; border-radius: 4px; width: 340px; }
         .login-module h2 { color: var(--orange); font-size: 1.2rem; margin-bottom: 20px; text-align: center; }
         .form-line { margin-bottom: 12px; }
         label { display: block; font-size: 10px; color: var(--dark-orange); margin-bottom: 4px; }
-        input { width: 100%; background: #111; border: 1px solid var(--dark-orange); color: var(--white); padding: 8px; border-radius: 2px; outline: none; }
-        input:focus { border-color: var(--orange); box-shadow: 0 0 4px var(--orange); }
-        .action-btn { width: 100%; background: transparent; color: var(--orange); border: 1px solid var(--orange); padding: 10px; border-radius: 2px; cursor: pointer; text-transform: uppercase; transition: 0.2s; font-weight: bold; }
+        input { width: 100%; background: #111; border: 1px solid var(--dark-orange); color: var(--white); padding: 8px; outline: none; }
+
+        .action-btn { width: 100%; background: transparent; color: var(--orange); border: 1px solid var(--orange); padding: 10px; cursor: pointer; font-weight: bold; }
         .action-btn:hover { background: var(--dark-orange); color: var(--white); }
 
-        #appContainer { display: none; height: 100vh; grid-template-rows: 25px 1fr 160px; }
+        #appContainer { display: none; height: 100vh; grid-template-rows: 25px 1fr 180px; }
         .header { background: rgba(30,30,30,0.5); border-bottom: 1px solid var(--dark-cyan); padding: 0 15px; display: flex; align-items: center; justify-content: space-between; }
-        .header span { color: var(--cyan); }
 
-        .workspace { display: grid; grid-template-columns: 2fr 1fr; gap: 1px; border-bottom: 1px solid var(--dark-cyan); padding: 1px; }
-        .module { background: rgba(10,10,10,0.5); border: 1px solid var(--dark-cyan); position: relative; padding: 15px; }
-        .module h3 { font-size: 10px; color: var(--white); background: var(--dark-cyan); padding: 3px 8px; position: absolute; top: 0; left: 0; }
-        
-        .server-selector { height: 100%; overflow: hidden; display: flex; flex-direction: column; }
-        .server-grid { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; padding-right: 5px; margin-top: 15px; }
-        .server-node { display: flex; align-items: center; gap: 10px; background: rgba(20,20,20,0.8); padding: 8px; border-radius: 2px; cursor: pointer; border: 1px solid transparent; }
-        .server-node:hover, .server-node.active { border-color: var(--cyan); background: rgba(41,252,252,0.1); }
-        .server-node img { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--dark-cyan); }
-        .server-node span { font-size: 11px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+        .workspace { display: grid; grid-template-columns: 200px 220px 1fr 240px; gap: 1px; border-bottom: 1px solid var(--dark-cyan); }
+        .module { background: rgba(10,10,10,0.5); border: 1px solid var(--dark-cyan); position: relative; padding: 15px 10px; overflow: hidden; display: flex; flex-direction: column; }
+        .module h3 { font-size: 10px; color: var(--white); background: var(--dark-cyan); padding: 3px 8px; position: absolute; top: 0; left: 0; width: 100%; }
 
-        .channel-data { height: 100%; display: flex; flex-direction: column; }
-        #channelSelect { width: 100%; background: #111; border: 1px solid var(--dark-cyan); color: var(--cyan); padding: 8px; border-radius: 2px; outline: none; cursor: pointer; margin-top: 15px; }
+        .server-grid, .cmd-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; margin-top: 15px; }
+        .server-node, .cmd-node { display: flex; flex-direction: column; background: rgba(20,20,20,0.8); padding: 6px; border: 1px solid transparent; cursor: pointer; }
+        .server-node:hover, .server-node.active, .cmd-node:hover { border-color: var(--cyan); background: rgba(41,252,252,0.1); }
 
-        .payload-console { background: #080a0f; border-top: 2px solid var(--orange); display: grid; grid-template-columns: 240px 1fr; gap: 20px; padding: 15px; }
-        .template-rack { border: 1px solid var(--dark-orange); padding: 10px; }
-        .template-rack h4 { color: var(--orange); margin-bottom: 10px; text-align: center; }
-        .template-stack { display: flex; flex-direction: column; gap: 6px; }
-        .temp-btn { background: #151a23; border: 1px solid var(--dark-orange); color: #c2d0e0; padding: 6px; border-radius: 2px; font-size: 9px; cursor: pointer; text-align: left; overflow: hidden; }
-        .temp-btn:hover { border-color: var(--orange); color: var(--white); }
+        #channelSelect { width: 100%; background: #111; border: 1px solid var(--dark-cyan); color: var(--cyan); padding: 8px; margin-top: 15px; }
 
-        .dispatch-module { display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: center; }
-        textarea { width: 100%; height: 110px; background: rgba(3,4,6,0.6); border: 1px solid var(--orange); color: var(--white); padding: 12px; border-radius: 2px; outline: none; resize: none; overflow-y: auto; font-family: monospace; }
-        textarea:focus { border-color: var(--orange); box-shadow: 0 0 5px rgba(252,138,41,0.5); }
-        .dispatch-btn { width: 150px; height: 110px; background: transparent; color: var(--orange); border: 2px solid var(--orange); font-size: 1.1rem; border-radius: 2px; cursor: pointer; transition: 0.2s; font-weight: bold; text-align: center; }
-        .dispatch-btn:hover { background: var(--dark-orange); color: var(--white); border-color: var(--orange); }
-        
-        #statusLine { font-size: 10px; color: var(--orange); grid-column: span 2; margin-top: 5px; }
+        .feed-box { margin-top: 15px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+        .msg-card { background: rgba(15,15,15,0.9); border: 1px solid var(--dark-cyan); padding: 6px; }
+        .msg-card.bot { border-color: var(--orange); }
+        .msg-header { display: flex; justify-content: space-between; color: var(--white); font-weight: bold; margin-bottom: 4px; }
+        .msg-actions { margin-top: 5px; display: flex; gap: 5px; }
+        .sm-btn { background: transparent; border: 1px solid var(--cyan); color: var(--cyan); padding: 2px 4px; cursor: pointer; font-size: 8px; }
+        .sm-btn.del { border-color: var(--red); color: var(--red); }
+
+        .payload-console { background: #080a0f; border-top: 2px solid var(--orange); display: grid; grid-template-columns: 200px 1fr; gap: 15px; padding: 10px; }
+        textarea { width: 100%; height: 90px; background: rgba(3,4,6,0.6); border: 1px solid var(--orange); color: var(--white); padding: 8px; outline: none; resize: none; }
+        .dispatch-btn { width: 100%; height: 90px; background: transparent; color: var(--orange); border: 2px solid var(--orange); font-size: 1rem; cursor: pointer; font-weight: bold; }
+        .dispatch-btn:hover { background: var(--dark-orange); color: var(--white); }
         .status-controls { display: flex; gap: 5px; }
         .st-btn { background: #111; border: 1px solid var(--dark-cyan); color: var(--cyan); padding: 2px 6px; cursor: pointer; font-size: 9px; }
-        .st-btn:hover { border-color: var(--cyan); }
     </style>
 </head>
 <body>
 
     <div id="loginOverlay">
         <div class="login-module">
-            <h2>CONSOLE ACCESS</h2>
-            <div class="form-line">
-                <label>BACKEND API LINK</label>
-                <input type="text" id="apiUrl" placeholder="https://your-backend.onrender.com">
-            </div>
-            <div class="form-line">
-                <label>OPERATOR USERNAME</label>
-                <input type="text" id="username" value="admin">
-            </div>
-            <div class="form-line">
-                <label>AUTHENTICATION KEY</label>
-                <input type="password" id="password" value="2026">
-            </div>
+            <h2>COMMAND ACCESS</h2>
+            <div class="form-line"><label>BACKEND API LINK</label><input type="text" id="apiUrl" placeholder="https://your-backend.onrender.com"></div>
+            <div class="form-line"><label>OPERATOR USERNAME</label><input type="text" id="username" value="admin"></div>
+            <div class="form-line"><label>AUTHENTICATION KEY</label><input type="password" id="password" value="2026"></div>
             <button class="action-btn" onclick="authenticateConsole()">LOG IN</button>
             <div id="loginStatus" style="color: var(--orange); font-size: 10px; margin-top: 8px; text-align: center;"></div>
         </div>
@@ -80,199 +63,170 @@
 
     <div id="appContainer">
         <div class="header">
-            <span>OPERATIONAL STATUS: <b id="sysStatus">AWAITING AUTHENTICATION</b></span>
+            <span>STATUS: <b id="sysStatus">AWAITING AUTHENTICATION</b></span>
             <div class="status-controls">
                 <button class="st-btn" onclick="changePresence('online')">ONLINE</button>
                 <button class="st-btn" onclick="changePresence('idle')">IDLE</button>
                 <button class="st-btn" onclick="changePresence('dnd')">DND</button>
-                <button class="st-btn" onclick="changePresence('invisible')">OFFLINE</button>
             </div>
         </div>
 
         <div class="workspace">
-            <div class="module server-selector">
-                <h3>[1] SECTOR NAVIGATION</h3>
+            <div class="module">
+                <h3>[1] SECTORS</h3>
                 <div class="server-grid" id="serverList"></div>
             </div>
 
-            <div class="module channel-data">
-                <h3>[2] CHANNEL COORDINATES</h3>
-                <select id="channelSelect"><option value="">SELECT SECTOR FIRST...</option></select>
+            <div class="module">
+                <h3>[2] CHANNELS</h3>
+                <select id="channelSelect" onchange="loadChannelMessages()"><option value="">SELECT SECTOR...</option></select>
+            </div>
+
+            <div class="module">
+                <h3>[3] LIVE TRANSMISSIONS</h3>
+                <div class="feed-box" id="messageFeed">SELECT CHANNEL TO VIEW MESSAGES</div>
+            </div>
+
+            <div class="module">
+                <h3>[4] COMMAND REGISTRY</h3>
+                <div class="cmd-list" id="commandList"></div>
             </div>
         </div>
 
         <div class="payload-console module">
-            <h3>[3] PAYLOAD DISPATCH</h3>
-            <div class="template-rack">
-                <h4>QUICK ACTIONS</h4>
-                <div class="template-stack">
-                    <button class="temp-btn" onclick="injectTemplate('ban')">BAN NOTICE</button>
-                    <button class="temp-btn" onclick="injectTemplate('appeal')">APPEAL PROTOCOL</button>
-                    <button class="temp-btn" onclick="injectTemplate('clearance')">CLEARANCE UPDATE</button>
-                    <button class="temp-btn" onclick="injectTemplate('announcement')">DIRECTIVE NOTICE</button>
-                </div>
+            <div>
+                <button class="action-btn" style="height: 40px; margin-bottom: 5px;" onclick="loadChannelMessages()">REFRESH FEED</button>
+                <div id="statusLine" style="color: var(--orange);">READY</div>
             </div>
-
-            <div class="dispatch-module">
-                <textarea id="payloadText" placeholder="TYPE PAYLOAD DATA OR USE QUICK ACTIONS..."></textarea>
-                <button class="dispatch-btn" onclick="transmitPayload()">TRANSMIT DISPATCH</button>
-                <div id="statusLine">READY FOR OPERATIONAL DISPATCH.</div>
+            <div style="display: grid; grid-template-columns: 1fr 140px; gap: 10px;">
+                <textarea id="payloadText" placeholder="TYPE DISPATCH OR EXECUTE COMMAND..."></textarea>
+                <button class="dispatch-btn" onclick="transmitPayload()">TRANSMIT</button>
             </div>
         </div>
     </div>
 
     <script>
-        let authToken = '';
-        let currentApiUrl = '';
-
-        const templates = {
-            ban: "⛔ **ACCOUNT TERMINATION NOTICE**\n\n**Subject:** Access Revoked\n**Reason:** Operational Security Violation\n**Status:** Immediate Action / Non-Appealable.",
-            appeal: "📋 **ACCESS APPEAL PROCEDURE**\n\nSubmit your credentials review request. Required information: [User ID], [Incident Ref.], [Explanation].",
-            clearance: "🔒 **SECURITY CLEARANCE NOTICE**\n\nPersonnel are directed to review assigned role designations. Ensure updated credentials are valid.",
-            announcement: "📢 **OPERATIONAL DIRECTIVE**\n\nAttention: Updated server procedures are now active. Comply with instructions in staff channels."
-        };
+        let authToken = '', currentApiUrl = '', selectedChannelId = '';
 
         async function authenticateConsole() {
             currentApiUrl = document.getElementById('apiUrl').value.trim();
             const user = document.getElementById('username').value.trim();
             const pass = document.getElementById('password').value.trim();
-            const status = document.getElementById('loginStatus');
 
-            if (!currentApiUrl || !user || !pass) {
-                status.innerText = "ALL FIELDS REQUIRED.";
-                return;
-            }
+            const res = await fetch(`${currentApiUrl}/api/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user, password: pass })
+            });
+            const data = await res.json();
 
-            status.innerText = "AUTHENTICATING...";
-
-            try {
-                const res = await fetch(`${currentApiUrl}/api/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: user, password: pass })
-                });
-
-                const data = await res.json();
-
-                if (res.ok) {
-                    authToken = data.token;
-                    document.getElementById('loginOverlay').style.display = 'none';
-                    document.getElementById('appContainer').style.display = 'grid';
-                    document.getElementById('sysStatus').innerText = 'OPERATIONAL';
-                    initializeConsoleData();
-                } else {
-                    status.innerText = data.error || "AUTHENTICATION FAILED.";
-                }
-            } catch (err) {
-                status.innerText = "BACKEND CONNECTION FAILED.";
+            if (res.ok) {
+                authToken = data.token;
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'grid';
+                initializeConsoleData();
             }
         }
 
         async function initializeConsoleData() {
+            const res = await fetch(`${currentApiUrl}/api/servers`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+            const data = await res.json();
             const list = document.getElementById('serverList');
-            list.innerHTML = "FETCHING SECTOR DATA...";
+            list.innerHTML = '';
+            data.servers.forEach(s => {
+                const btn = document.createElement('div');
+                btn.className = 'server-node';
+                btn.innerText = s.name;
+                btn.onclick = () => selectServer(s.id, btn);
+                list.appendChild(btn);
+            });
 
-            try {
-                const res = await fetch(`${currentApiUrl}/api/servers`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-                const data = await res.json();
-
-                list.innerHTML = '';
-                data.servers.forEach(s => {
-                    const btn = document.createElement('div');
-                    btn.className = 'server-node';
-                    btn.innerHTML = `<img src="${s.icon}" alt=""><span>${s.name}</span>`;
-                    btn.onclick = () => selectServer(s.id, btn);
-                    list.appendChild(btn);
-                });
-            } catch (err) {
-                list.innerHTML = "FAILED TO FETCH DATA.";
-            }
+            // Fetch Commands
+            const cmdRes = await fetch(`${currentApiUrl}/api/commands`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+            const cmdData = await cmdRes.json();
+            const cmdList = document.getElementById('commandList');
+            cmdList.innerHTML = '';
+            cmdData.commands.forEach(c => {
+                const node = document.createElement('div');
+                node.className = 'cmd-node';
+                node.innerHTML = `<b>${c.name}</b><span style="font-size:8px; color:var(--dark-orange);">${c.dept}</span>`;
+                node.onclick = () => { document.getElementById('payloadText').value = c.name; };
+                cmdList.appendChild(node);
+            });
         }
 
         async function selectServer(guildId, element) {
             document.querySelectorAll('.server-node').forEach(b => b.classList.remove('active'));
             element.classList.add('active');
 
+            const res = await fetch(`${currentApiUrl}/api/servers/${guildId}/channels`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+            const data = await res.json();
             const select = document.getElementById('channelSelect');
-            select.innerHTML = "<option>LOADING CHANNELS...</option>";
-
-            try {
-                const res = await fetch(`${currentApiUrl}/api/servers/${guildId}/channels`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-                const data = await res.json();
-
-                select.innerHTML = '';
-                data.channels.forEach(c => {
-                    const opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.innerText = `# ${c.name}`;
-                    select.appendChild(opt);
-                });
-            } catch (err) {
-                select.innerHTML = "<option>CHANNEL FETCH FAILED</option>";
-            }
+            select.innerHTML = '<option value="">SELECT CHANNEL...</option>';
+            data.channels.forEach(c => {
+                select.innerHTML += `<option value="${c.id}"># ${c.name}</option>`;
+            });
         }
 
-        function injectTemplate(key) {
-            document.getElementById('payloadText').value = templates[key] || '';
+        async function loadChannelMessages() {
+            selectedChannelId = document.getElementById('channelSelect').value;
+            if (!selectedChannelId) return;
+
+            const feed = document.getElementById('messageFeed');
+            feed.innerHTML = "LOADING MESSAGES...";
+
+            const res = await fetch(`${currentApiUrl}/api/channels/${selectedChannelId}/messages`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+            const data = await res.json();
+
+            feed.innerHTML = '';
+            data.messages.forEach(m => {
+                const card = document.createElement('div');
+                card.className = `msg-card ${m.isBot ? 'bot' : ''}`;
+                card.innerHTML = `
+                    <div class="msg-header"><span>${m.author}</span><span style="font-size:8px;">${new Date(m.timestamp).toLocaleTimeString()}</span></div>
+                    <div>${m.content}</div>
+                    <div class="msg-actions">
+                        <button class="sm-btn" onclick="prepareReply('${m.author}')">REPLY</button>
+                        ${m.isBot ? `<button class="sm-btn del" onclick="deleteMessage('${m.id}')">DELETE</button>` : ''}
+                    </div>
+                `;
+                feed.appendChild(card);
+            });
+        }
+
+        function prepareReply(author) {
+            document.getElementById('payloadText').value = `@${author} `;
+            document.getElementById('payloadText').focus();
+        }
+
+        async function deleteMessage(msgId) {
+            await fetch(`${currentApiUrl}/api/messages/${selectedChannelId}/${msgId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            loadChannelMessages();
         }
 
         async function transmitPayload() {
-            const channelId = document.getElementById('channelSelect').value;
             const message = document.getElementById('payloadText').value.trim();
-            const status = document.getElementById('statusLine');
+            if (!selectedChannelId || !message) return;
 
-            if (!channelId || !message) {
-                status.style.color = 'var(--orange)';
-                status.innerText = 'SELECT CHANNEL AND ENTER PAYLOAD.';
-                return;
-            }
+            await fetch(`${currentApiUrl}/api/send-message`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ channelId: selectedChannelId, message })
+            });
 
-            status.style.color = 'var(--white)';
-            status.innerText = 'TRANSMITTING...';
-
-            try {
-                const res = await fetch(`${currentApiUrl}/api/send-message`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({ channelId, message })
-                });
-
-                if (res.ok) {
-                    status.style.color = '#2ecc71';
-                    status.innerText = 'PAYLOAD TRANSMITTED SUCCESSFUL.';
-                    document.getElementById('payloadText').value = '';
-                } else {
-                    const err = await res.json();
-                    status.style.color = '#e74c3c';
-                    status.innerText = `TRANSMISSION ERROR: ${err.error}`;
-                }
-            } catch (err) {
-                status.style.color = '#e74c3c';
-                status.innerText = 'TRANSMISSION FAILED.';
-            }
+            document.getElementById('payloadText').value = '';
+            setTimeout(loadChannelMessages, 1000);
         }
 
         async function changePresence(statusType) {
-            try {
-                await fetch(`${currentApiUrl}/api/set-status`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({ status: statusType })
-                });
-                document.getElementById('statusLine').innerText = `BOT STATUS UPDATED TO ${statusType.toUpperCase()}`;
-            } catch (err) {
-                document.getElementById('statusLine').innerText = 'STATUS UPDATE FAILED.';
-            }
+            await fetch(`${currentApiUrl}/api/set-status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ status: statusType })
+            });
         }
     </script>
 </body>
