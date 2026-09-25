@@ -22,19 +22,12 @@
         .login-module h2 { color: var(--orange); font-size: 1.2rem; margin-bottom: 20px; text-align: center; }
         .form-line { margin-bottom: 12px; }
         label { display: block; font-size: 10px; color: var(--dark-orange); margin-bottom: 4px; }
-        input, select { width: 100%; background: #111; border: 1px solid var(--dark-orange); color: var(--white); padding: 8px; outline: none; }
+        input, select, textarea { width: 100%; background: #111; border: 1px solid var(--dark-orange); color: var(--white); padding: 8px; outline: none; }
 
         .action-btn { width: 100%; background: transparent; color: var(--orange); border: 1px solid var(--orange); padding: 10px; cursor: pointer; font-weight: bold; }
         .action-btn:hover { background: var(--dark-orange); color: var(--white); }
 
-        /* Locked Layout Heights to Prevent Pushing Console Offscreen */
-        #appContainer { 
-            display: none; 
-            height: 100vh; 
-            width: 100vw;
-            grid-template-rows: 36px calc(100vh - 176px) 140px; 
-            overflow: hidden;
-        }
+        #appContainer { display: none; height: 100vh; width: 100vw; grid-template-rows: 36px calc(100vh - 176px) 140px; overflow: hidden; }
 
         .header { background: rgba(30,30,30,0.5); border-bottom: 1px solid var(--dark-cyan); padding: 0 15px; display: flex; align-items: center; justify-content: space-between; height: 36px; }
 
@@ -42,23 +35,23 @@
         .unit-btn { background: #111; border: 1px solid var(--dark-cyan); color: var(--cyan); padding: 4px 8px; cursor: pointer; font-size: 9px; }
         .unit-btn.active { border-color: var(--orange); color: var(--orange); background: rgba(252,138,41,0.1); }
 
-        .workspace { 
-            display: grid; 
-            grid-template-columns: 200px 220px 1fr 280px; 
-            gap: 1px; 
-            border-bottom: 1px solid var(--dark-cyan); 
-            overflow: hidden; 
-            min-height: 0; 
-        }
+        .nav-tabs { display: flex; gap: 5px; }
+        .tab-btn { background: #000; border: 1px solid var(--dark-cyan); color: var(--cyan); padding: 4px 10px; cursor: pointer; position: relative; }
+        .tab-btn.active { border-color: var(--orange); color: var(--orange); }
+        .badge { position: absolute; top: -5px; right: -5px; background: var(--red); color: #fff; font-size: 8px; padding: 1px 4px; border-radius: 50%; display: none; }
+
+        .view-section { display: none; height: 100%; width: 100%; }
+        .view-section.active { display: grid; }
+
+        /* Server View Workspace */
+        #serverWorkspace { grid-template-columns: 200px 220px 1fr 280px; gap: 1px; border-bottom: 1px solid var(--dark-cyan); overflow: hidden; min-height: 0; }
 
         .module { background: rgba(10,10,10,0.5); border: 1px solid var(--dark-cyan); position: relative; padding: 25px 10px 10px 10px; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
         .module h3 { font-size: 10px; color: var(--white); background: var(--dark-cyan); padding: 3px 8px; position: absolute; top: 0; left: 0; width: 100%; z-index: 5; }
 
-        .server-grid, .cmd-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; height: 100%; }
-        .server-node, .cmd-node { display: flex; flex-direction: column; background: rgba(20,20,20,0.8); padding: 6px; border: 1px solid transparent; cursor: pointer; }
-        .server-node:hover, .server-node.active, .cmd-node:hover { border-color: var(--cyan); background: rgba(41,252,252,0.1); }
-
-        #channelSelect { width: 100%; background: #111; border: 1px solid var(--dark-cyan); color: var(--cyan); padding: 8px; }
+        .server-grid, .cmd-list, .dm-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; height: 100%; }
+        .server-node, .cmd-node, .dm-node { display: flex; flex-direction: column; background: rgba(20,20,20,0.8); padding: 6px; border: 1px solid transparent; cursor: pointer; }
+        .server-node:hover, .server-node.active, .cmd-node:hover, .dm-node:hover { border-color: var(--cyan); background: rgba(41,252,252,0.1); }
 
         .feed-box { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; height: 100%; padding-right: 5px; min-height: 0; }
         .msg-card { background: rgba(15,15,15,0.9); border: 1px solid var(--dark-cyan); padding: 6px; }
@@ -68,19 +61,15 @@
         .sm-btn { background: transparent; border: 1px solid var(--cyan); color: var(--cyan); padding: 2px 6px; cursor: pointer; font-size: 8px; }
         .sm-btn.del { border-color: var(--red); color: var(--red); }
 
-        /* Dedicated Fixed Bottom Console */
-        .payload-console { 
-            background: #080a0f; 
-            border-top: 2px solid var(--orange); 
-            display: grid; 
-            grid-template-columns: 200px 1fr 140px; 
-            gap: 15px; 
-            padding: 10px; 
-            height: 140px; 
-            box-sizing: border-box;
-        }
+        /* Customization Page */
+        #customWorkspace { grid-template-columns: 1fr 1fr; gap: 15px; padding: 15px; overflow-y: auto; }
+        .cust-card { background: rgba(10,10,10,0.8); border: 1px solid var(--orange); padding: 15px; display: flex; flex-direction: column; gap: 12px; }
 
-        textarea { width: 100%; height: 100%; background: rgba(3,4,6,0.6); border: 1px solid var(--orange); color: var(--white); padding: 8px; outline: none; resize: none; font-size: 12px; }
+        /* DMs Workspace */
+        #dmWorkspace { grid-template-columns: 260px 1fr; gap: 1px; border-bottom: 1px solid var(--dark-cyan); overflow: hidden; }
+
+        .payload-console { background: #080a0f; border-top: 2px solid var(--orange); display: grid; grid-template-columns: 200px 1fr 140px; gap: 15px; padding: 10px; height: 140px; }
+        textarea { resize: none; font-size: 12px; }
         .dispatch-btn { width: 100%; height: 100%; background: transparent; color: var(--orange); border: 2px solid var(--orange); font-size: 1rem; cursor: pointer; font-weight: bold; }
         .dispatch-btn:hover { background: var(--dark-orange); color: var(--white); }
         .st-btn { background: #111; border: 1px solid var(--dark-cyan); color: var(--cyan); padding: 2px 6px; cursor: pointer; font-size: 9px; }
@@ -107,8 +96,15 @@
                 <button class="unit-btn" id="btn-gsc" onclick="switchActiveBot('gsc')">GSC BOT</button>
                 <button class="unit-btn" id="btn-afsf" onclick="switchActiveBot('afsf')">AFSF BOT</button>
             </div>
+
+            <div class="nav-tabs">
+                <button class="tab-btn active" id="tab-servers" onclick="switchTab('serverWorkspace', 'tab-servers')">CHANNELS</button>
+                <button class="tab-btn" id="tab-dms" onclick="switchTab('dmWorkspace', 'tab-dms')">DIRECT MESSAGES <span class="badge" id="dmBadge">0</span></button>
+                <button class="tab-btn" id="tab-custom" onclick="switchTab('customWorkspace', 'tab-custom')">CUSTOMIZATION</button>
+            </div>
+
             <div style="display:flex; gap:5px; align-items:center;">
-                <span style="color:var(--orange); font-size:9px;">UNIT STATUS:</span>
+                <span style="color:var(--orange); font-size:9px;">STATUS:</span>
                 <button class="st-btn" onclick="changePresence('online')">ONLINE</button>
                 <button class="st-btn" onclick="changePresence('idle')">IDLE</button>
                 <button class="st-btn" onclick="changePresence('dnd')">DND</button>
@@ -116,7 +112,8 @@
             </div>
         </div>
 
-        <div class="workspace">
+        <!-- TAB 1: SERVER CHANNELS WORKSPACE -->
+        <div id="serverWorkspace" class="view-section active">
             <div class="module">
                 <h3>[1] SECTORS</h3>
                 <div class="server-grid" id="serverList"></div>
@@ -128,7 +125,7 @@
             </div>
 
             <div class="module">
-                <h3>[3] LIVE FEED & HISTORY</h3>
+                <h3>[3] LIVE FEED</h3>
                 <div class="feed-box" id="messageFeed">SELECT A CHANNEL TO VIEW MESSAGES</div>
             </div>
 
@@ -138,9 +135,72 @@
             </div>
         </div>
 
+        <!-- TAB 2: DIRECT MESSAGES WORKSPACE -->
+        <div id="dmWorkspace" class="view-section">
+            <div class="module">
+                <h3>DIRECT MESSAGES LIST</h3>
+                <div class="dm-list" id="dmList">NO RECENT DIRECT MESSAGES</div>
+            </div>
+            <div class="module">
+                <h3>CONVERSATION FEED</h3>
+                <div class="feed-box" id="dmFeed">SELECT A DM CONVERSATION TO VIEW HISTORY</div>
+            </div>
+        </div>
+
+        <!-- TAB 3: CUSTOMIZATION WORKSPACE -->
+        <div id="customWorkspace" class="view-section">
+            <div class="cust-card">
+                <h3 style="color:var(--orange);">BOT IDENTITY & AVATAR</h3>
+                <div style="display:flex; gap:15px; align-items:center;">
+                    <img id="botAvatarPreview" src="https://cdn.discordapp.com/embed/avatars/0.png" style="width:70px; height:70px; border-radius:50%; border:2px solid var(--cyan);">
+                    <div>
+                        <h2 id="botTagDisplay" style="color:var(--white);">BOT_TAG</h2>
+                        <span id="botIdDisplay" style="color:var(--dark-orange); font-size:9px;">ID: 00000000</span>
+                    </div>
+                </div>
+                <div class="form-line">
+                    <label>NEW PROFILE PICTURE (IMAGE URL OR UPLOAD)</label>
+                    <input type="text" id="avatarUrlInput" placeholder="https://i.imgur.com/your-image.png">
+                </div>
+                <div class="form-line">
+                    <label>ABOUT ME / BIO</label>
+                    <textarea id="bioInput" rows="4" placeholder="Enter bot background bio details..."></textarea>
+                </div>
+            </div>
+
+            <div class="cust-card">
+                <h3 style="color:var(--orange);">RICH PRESENCE & STATUS</h3>
+                <div class="form-line">
+                    <label>ONLINE STATUS TYPE</label>
+                    <select id="statusSelect">
+                        <option value="online">ONLINE</option>
+                        <option value="idle">IDLE</option>
+                        <option value="dnd">DO NOT DISTURB</option>
+                        <option value="invisible">INVISIBLE / OFFLINE</option>
+                    </select>
+                </div>
+                <div class="form-line">
+                    <label>ACTIVITY TYPE</label>
+                    <select id="activityTypeSelect">
+                        <option value="PLAYING">PLAYING (e.g., Playing Roblox)</option>
+                        <option value="WATCHING">WATCHING (e.g., Watching Videos)</option>
+                        <option value="LISTENING">LISTENING TO (e.g., Listening to Radio)</option>
+                        <option value="COMPETING">COMPETING IN</option>
+                        <option value="STREAMING">STREAMING</option>
+                    </select>
+                </div>
+                <div class="form-line">
+                    <label>CUSTOM STATUS TEXT</label>
+                    <input type="text" id="activityTextInput" placeholder="e.g., Roblox / Security Operations">
+                </div>
+                <button class="action-btn" onclick="saveCustomizations()">APPLY PROFILE & STATUS UPDATES</button>
+            </div>
+        </div>
+
+        <!-- BOTTOM DISPATCH CONSOLE -->
         <div class="payload-console">
             <div style="display: flex; flex-direction: column; gap: 5px;">
-                <button class="action-btn" style="height: 40px;" onclick="loadChannelMessages()">REFRESH FEED</button>
+                <button class="action-btn" style="height: 40px;" onclick="refreshCurrentTab()">REFRESH FEED</button>
                 <div id="statusLine" style="color: var(--orange); font-size: 9px;">STATUS: READY</div>
             </div>
             <div>
@@ -154,6 +214,9 @@
 
     <script>
         let authToken = '', currentApiUrl = '', selectedChannelId = '', activeBot = 'exchange';
+        let currentActiveTab = 'serverWorkspace';
+        let selectedDmUser = null;
+        let lastDmCount = 0;
 
         async function authenticateConsole() {
             currentApiUrl = document.getElementById('apiUrl').value.trim();
@@ -173,6 +236,7 @@
                     document.getElementById('loginOverlay').style.display = 'none';
                     document.getElementById('appContainer').style.display = 'grid';
                     initializeConsoleData();
+                    setInterval(pollDms, 5000); // Live DM Notification Polling
                 } else {
                     document.getElementById('loginStatus').innerText = data.error || 'LOGIN FAILED';
                 }
@@ -181,12 +245,25 @@
             }
         }
 
+        function switchTab(workspaceId, tabId) {
+            currentActiveTab = workspaceId;
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+
+            document.getElementById(workspaceId).classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+
+            if (workspaceId === 'customWorkspace') loadBotProfile();
+            if (workspaceId === 'dmWorkspace') loadDms();
+        }
+
         function switchActiveBot(unitKey) {
             activeBot = unitKey;
             document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`btn-${unitKey}`).classList.add('active');
-            document.getElementById('messageFeed').innerHTML = "SWITCHING UNITS...";
             initializeConsoleData();
+            if (currentActiveTab === 'customWorkspace') loadBotProfile();
+            if (currentActiveTab === 'dmWorkspace') loadDms();
         }
 
         async function initializeConsoleData() {
@@ -204,8 +281,6 @@
                         btn.onclick = () => selectServer(s.id, btn);
                         list.appendChild(btn);
                     });
-                } else {
-                    list.innerHTML = `<span style="color:var(--red); padding:10px;">${data.error || 'NO SERVERS FOUND FOR THIS BOT'}</span>`;
                 }
 
                 const cmdRes = await fetch(`${currentApiUrl}/api/commands`, { headers: { 'Authorization': `Bearer ${authToken}` } });
@@ -228,6 +303,91 @@
             }
         }
 
+        async function loadBotProfile() {
+            const res = await fetch(`${currentApiUrl}/api/bot-profile?bot=${activeBot}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+            const data = await res.json();
+            if (res.ok) {
+                document.getElementById('botAvatarPreview').src = data.avatar;
+                document.getElementById('botTagDisplay').innerText = data.tag;
+                document.getElementById('botIdDisplay').innerText = `ID: ${data.id}`;
+            }
+        }
+
+        async function saveCustomizations() {
+            const avatar = document.getElementById('avatarUrlInput').value.trim();
+            const bio = document.getElementById('bioInput').value.trim();
+            const status = document.getElementById('statusSelect').value;
+            const activityType = document.getElementById('activityTypeSelect').value;
+            const activityText = document.getElementById('activityTextInput').value.trim();
+
+            const res = await fetch(`${currentApiUrl}/api/customize`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ botType: activeBot, avatar, bio, status, activityType, activityText })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                alert("PROFILE & PRESENCE UPDATED.");
+                loadBotProfile();
+            } else {
+                alert("ERROR: " + data.error);
+            }
+        }
+
+        async function pollDms() {
+            const res = await fetch(`${currentApiUrl}/api/dms?bot=${activeBot}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+            const data = await res.json();
+            if (data.dms && data.dms.length > lastDmCount) {
+                const newCount = data.dms.length - lastDmCount;
+                const badge = document.getElementById('dmBadge');
+                badge.style.display = 'block';
+                badge.innerText = newCount;
+            }
+        }
+
+        async function loadDms() {
+            document.getElementById('dmBadge').style.display = 'none';
+            const res = await fetch(`${currentApiUrl}/api/dms?bot=${activeBot}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+            const data = await res.json();
+            const list = document.getElementById('dmList');
+            list.innerHTML = '';
+
+            if (data.dms && data.dms.length > 0) {
+                lastDmCount = data.dms.length;
+                const users = {};
+                data.dms.forEach(d => users[d.authorId] = d.author);
+
+                Object.keys(users).forEach(uId => {
+                    const node = document.createElement('div');
+                    node.className = 'dm-node';
+                    node.innerText = `@${users[uId]}`;
+                    node.onclick = () => filterDmConversation(uId, users[uId], data.dms);
+                    list.appendChild(node);
+                });
+            } else {
+                list.innerHTML = 'NO DIRECT MESSAGES YET';
+            }
+        }
+
+        function filterDmConversation(userId, username, allDms) {
+            selectedDmUser = userId;
+            const feed = document.getElementById('dmFeed');
+            feed.innerHTML = '';
+
+            const userDms = allDms.filter(d => d.authorId === userId || (d.isBot && d.channelId === userId));
+            userDms.forEach(m => {
+                const card = document.createElement('div');
+                card.className = `msg-card ${m.isBot ? 'bot' : ''}`;
+                card.innerHTML = `
+                    <div class="msg-header"><span>${m.author}</span><span style="font-size:8px;">${new Date(m.timestamp).toLocaleTimeString()}</span></div>
+                    <div>${m.content}</div>
+                `;
+                feed.appendChild(card);
+            });
+            feed.scrollTop = feed.scrollHeight;
+        }
+
         async function selectServer(guildId, element) {
             document.querySelectorAll('.server-node').forEach(b => b.classList.remove('active'));
             element.classList.add('active');
@@ -237,9 +397,7 @@
             const select = document.getElementById('channelSelect');
             select.innerHTML = '<option value="">SELECT CHANNEL...</option>';
             if (data.channels) {
-                data.channels.forEach(c => {
-                    select.innerHTML += `<option value="${c.id}"># ${c.name}</option>`;
-                });
+                data.channels.forEach(c => select.innerHTML += `<option value="${c.id}"># ${c.name}</option>`);
             }
         }
 
@@ -258,7 +416,6 @@
                 data.messages.reverse().forEach(m => {
                     const card = document.createElement('div');
                     card.className = `msg-card ${m.isBot ? 'bot' : ''}`;
-                    
                     const safeAuthor = m.author.replace(/'/g, "\\'");
                     const safeContent = m.content.replace(/'/g, "\\'").replace(/\n/g, " ");
 
@@ -309,11 +466,25 @@
 
         async function transmitPayload() {
             const message = document.getElementById('payloadText').value.trim();
+            if (!message) return;
+
+            // DM Mode Transmission
+            if (currentActiveTab === 'dmWorkspace' && selectedDmUser) {
+                await fetch(`${currentApiUrl}/api/send-dm`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                    body: JSON.stringify({ botType: activeBot, userId: selectedDmUser, message })
+                });
+                document.getElementById('payloadText').value = '';
+                setTimeout(loadDms, 500);
+                return;
+            }
+
+            // Channel Mode Transmission
             if (!selectedChannelId) {
                 alert("PLEASE SELECT A CHANNEL FIRST.");
                 return;
             }
-            if (!message) return;
 
             await fetch(`${currentApiUrl}/api/send-message`, {
                 method: 'POST',
@@ -323,6 +494,12 @@
 
             document.getElementById('payloadText').value = '';
             setTimeout(loadChannelMessages, 800);
+        }
+
+        function refreshCurrentTab() {
+            if (currentActiveTab === 'serverWorkspace') loadChannelMessages();
+            if (currentActiveTab === 'dmWorkspace') loadDms();
+            if (currentActiveTab === 'customWorkspace') loadBotProfile();
         }
 
         async function changePresence(statusType) {
