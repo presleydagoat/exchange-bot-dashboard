@@ -1,406 +1,515 @@
-const { Client, GatewayIntentBits, ChannelType, ActivityType, Partials } = require('discord.js');
-const express = require('express');
-const cors = require('cors');
-const crypto = require('crypto');
-
-const app = express();
-app.use(express.json({ limit: '10mb' }));
-app.use(cors());
-
-const intents = [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.DirectMessages
-];
-
-// Partials allow the bot to receive DM events even if uncached
-const partials = [Partials.Channel, Partials.Message, Partials.User];
-
-// Isolated Bot Clients
-const clients = {
-    exchange: new Client({ intents, partials }),
-    gsc: new Client({ intents, partials }),
-    afsf: new Client({ intents, partials })
-};
-
-const BOT_TOKEN = process.env.BOT_TOKEN;
-const GSC_BOT_TOKEN = process.env.GSC_BOT_TOKEN;
-const AFSF_BOT_TOKEN = process.env.AFSF_BOT_TOKEN;
-
-const DASHBOARD_USER = process.env.DASHBOARD_USER || "admin";
-const DASHBOARD_PASS = process.env.DASHBOARD_PASS || "2026";
-
-const SESSION_TOKEN = crypto.randomBytes(32).toString('hex');
-
-// In-memory fallback logs for real-time incoming DMs
-const dmLogs = {
-    exchange: [],
-    gsc: [],
-    afsf: []
-};
-
-// Discord Activity Mapping
-const ACTIVITY_TYPES = {
-    PLAYING: ActivityType.Playing,
-    STREAMING: ActivityType.Streaming,
-    LISTENING: ActivityType.Listening,
-    WATCHING: ActivityType.Watching,
-    COMPETING: ActivityType.Competing,
-    CUSTOM: ActivityType.Custom
-};
-
-// Real-time DM Event Listener for each bot
-Object.keys(clients).forEach(key => {
-    const client = clients[key];
-    client.on('messageCreate', async message => {
-        if (message.channel.type === ChannelType.DM) {
-            dmLogs[key].push({
-                id: message.id,
-                author: message.author.username,
-                authorId: message.author.id,
-                avatar: message.author.displayAvatarURL(),
-                content: message.content,
-                timestamp: message.createdAt,
-                isBot: message.author.bot,
-                channelId: message.author.id
-            });
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COMMAND OPERATIONAL CONSOLE</title>
+    <style>
+        :root { 
+            --main-bg: #030406; 
+            --cyan: #29fcfc; 
+            --dark-cyan: #148080; 
+            --orange: #fc8a29; 
+            --dark-orange: #7c4414; 
+            --white: #e1e6ed; 
+            --red: #ff4d4d; 
         }
-    });
-});
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'OCR A Extended', monospace, 'Courier New'; font-size: 11px; text-transform: uppercase; }
+        html, body { background: var(--main-bg); color: var(--cyan); height: 100vh; width: 100vw; overflow: hidden; }
 
-clients.exchange.once('ready', () => console.log(`[EXCHANGE BOT] Connected: ${clients.exchange.user.tag}`));
-clients.gsc.once('ready', () => console.log(`[GSC BOT] Connected: ${clients.gsc.user.tag}`));
-clients.afsf.once('ready', () => console.log(`[AFSF BOT] Connected: ${clients.afsf.user.tag}`));
+        #loginOverlay { position: fixed; inset: 0; background: rgba(3,4,6,0.95); display: flex; justify-content: center; align-items: center; z-index: 2000; }
+        .login-module { background: var(--main-bg); border: 2px solid var(--orange); padding: 30px; width: 340px; }
+        .login-module h2 { color: var(--orange); font-size: 1.2rem; margin-bottom: 20px; text-align: center; }
+        .form-line { margin-bottom: 12px; }
+        label { display: block; font-size: 10px; color: var(--dark-orange); margin-bottom: 4px; }
+        input, select, textarea { width: 100%; background: #111; border: 1px solid var(--dark-orange); color: var(--white); padding: 8px; outline: none; }
 
-// Authentication Middleware
-const requireAuth = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    if (authHeader === `Bearer ${SESSION_TOKEN}`) {
-        next();
-    } else {
-        res.status(401).json({ error: 'AUTHENTICATION FAILURE' });
-    }
-};
+        .action-btn { width: 100%; background: transparent; color: var(--orange); border: 1px solid var(--orange); padding: 10px; cursor: pointer; font-weight: bold; }
+        .action-btn:hover { background: var(--dark-orange); color: var(--white); }
 
-app.post('/api/login', (req, res) => {
-    const { username, password } = req.body;
-    if (username === DASHBOARD_USER && password === DASHBOARD_PASS) {
-        res.json({ success: true, token: SESSION_TOKEN });
-    } else {
-        res.status(403).json({ error: 'INVALID CREDENTIALS' });
-    }
-});
+        #appContainer { display: none; height: 100vh; width: 100vw; grid-template-rows: 36px calc(100vh - 176px) 140px; overflow: hidden; }
 
-function getSelectedClient(botType) {
-    const client = clients[botType || 'exchange'];
-    if (!client || !client.isReady()) return null;
-    return client;
-}
+        .header { background: rgba(30,30,30,0.5); border-bottom: 1px solid var(--dark-cyan); padding: 0 15px; display: flex; align-items: center; justify-content: space-between; height: 36px; }
 
-// Bot Profile & Customization Endpoint
-app.post('/api/customize', requireAuth, async (req, res) => {
-    const { botType, avatar, bio, activityType, activityText, status } = req.body;
-    const activeClient = getSelectedClient(botType);
+        .unit-picker { display: flex; gap: 8px; align-items: center; }
+        .unit-btn { background: #111; border: 1px solid var(--dark-cyan); color: var(--cyan); padding: 4px 8px; cursor: pointer; font-size: 9px; }
+        .unit-btn.active { border-color: var(--orange); color: var(--orange); background: rgba(252,138,41,0.1); }
 
-    if (!activeClient) return res.status(503).json({ error: `Unit [${botType}] Offline.` });
+        .nav-tabs { display: flex; gap: 5px; }
+        .tab-btn { background: #000; border: 1px solid var(--dark-cyan); color: var(--cyan); padding: 4px 10px; cursor: pointer; position: relative; }
+        .tab-btn.active { border-color: var(--orange); color: var(--orange); }
+        .badge { position: absolute; top: -5px; right: -5px; background: var(--red); color: #fff; font-size: 8px; padding: 1px 4px; border-radius: 50%; display: none; }
 
-    try {
-        if (avatar) {
-            await activeClient.user.setAvatar(avatar);
-        }
+        .view-section { display: none; height: 100%; width: 100%; }
+        .view-section.active { display: grid; }
 
-        if (bio !== undefined && activeClient.user.setAboutMe) {
-            await activeClient.user.setAboutMe(bio);
-        }
+        /* Server View Workspace */
+        #serverWorkspace { grid-template-columns: 200px 220px 1fr 280px; gap: 1px; border-bottom: 1px solid var(--dark-cyan); overflow: hidden; min-height: 0; }
 
-        const options = {};
-        if (status) options.status = status;
-        if (activityType && activityText) {
-            options.activities = [{
-                name: activityText,
-                type: ACTIVITY_TYPES[activityType] || ActivityType.Playing
-            }];
-        }
+        .module { background: rgba(10,10,10,0.5); border: 1px solid var(--dark-cyan); position: relative; padding: 25px 10px 10px 10px; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+        .module h3 { font-size: 10px; color: var(--white); background: var(--dark-cyan); padding: 3px 8px; position: absolute; top: 0; left: 0; width: 100%; z-index: 5; }
 
-        activeClient.user.setPresence(options);
+        .server-grid, .cmd-list, .dm-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; height: 100%; }
+        .server-node, .cmd-node, .dm-node { display: flex; flex-direction: column; background: rgba(20,20,20,0.8); padding: 6px; border: 1px solid transparent; cursor: pointer; }
+        .server-node:hover, .server-node.active, .cmd-node:hover, .dm-node:hover { border-color: var(--cyan); background: rgba(41,252,252,0.1); }
 
-        res.json({ success: true, message: 'BOT PROFILE & PRESENCE UPDATED SUCCESSFULLY' });
-    } catch (err) {
-        res.status(500).json({ error: 'FAILED TO UPDATE PROFILE: ' + err.message });
-    }
-});
+        .feed-box { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; height: 100%; padding-right: 5px; min-height: 0; }
+        .msg-card { background: rgba(15,15,15,0.9); border: 1px solid var(--dark-cyan); padding: 6px; }
+        .msg-card.bot { border-color: var(--orange); }
+        .msg-header { display: flex; justify-content: space-between; color: var(--white); font-weight: bold; margin-bottom: 4px; }
+        .msg-actions { margin-top: 5px; display: flex; gap: 5px; }
+        .sm-btn { background: transparent; border: 1px solid var(--cyan); color: var(--cyan); padding: 2px 6px; cursor: pointer; font-size: 8px; }
+        .sm-btn.del { border-color: var(--red); color: var(--red); }
 
-// Fetch Current Bot Profile Details
-app.get('/api/bot-profile', requireAuth, async (req, res) => {
-    const botType = req.query.bot || 'exchange';
-    const activeClient = getSelectedClient(botType);
+        /* Customization Page */
+        #customWorkspace { grid-template-columns: 1fr 1fr; gap: 15px; padding: 15px; overflow-y: auto; }
+        .cust-card { background: rgba(10,10,10,0.8); border: 1px solid var(--orange); padding: 15px; display: flex; flex-direction: column; gap: 12px; }
 
-    if (!activeClient) return res.status(503).json({ error: 'Unit Offline' });
+        /* DMs Workspace */
+        #dmWorkspace { grid-template-columns: 260px 1fr; gap: 1px; border-bottom: 1px solid var(--dark-cyan); overflow: hidden; }
 
-    res.json({
-        username: activeClient.user.username,
-        tag: activeClient.user.tag,
-        avatar: activeClient.user.displayAvatarURL(),
-        id: activeClient.user.id
-    });
-});
+        .payload-console { background: #080a0f; border-top: 2px solid var(--orange); display: grid; grid-template-columns: 200px 1fr 140px; gap: 15px; padding: 10px; height: 140px; }
+        textarea { resize: none; font-size: 12px; }
+        .dispatch-btn { width: 100%; height: 100%; background: transparent; color: var(--orange); border: 2px solid var(--orange); font-size: 1rem; cursor: pointer; font-weight: bold; }
+        .dispatch-btn:hover { background: var(--dark-orange); color: var(--white); }
+        .st-btn { background: #111; border: 1px solid var(--dark-cyan); color: var(--cyan); padding: 2px 6px; cursor: pointer; font-size: 9px; }
+    </style>
+</head>
+<body>
 
-// Fetch Direct Messages Directly From Discord APIs + Memory
-app.get('/api/dms', requireAuth, async (req, res) => {
-    const botType = req.query.bot || 'exchange';
-    const activeClient = getSelectedClient(botType);
+    <div id="loginOverlay">
+        <div class="login-module">
+            <h2>COMMAND ACCESS</h2>
+            <div class="form-line"><label>BACKEND API LINK</label><input type="text" id="apiUrl" placeholder="https://your-backend.onrender.com"></div>
+            <div class="form-line"><label>OPERATOR USERNAME</label><input type="text" id="username" value="admin"></div>
+            <div class="form-line"><label>AUTHENTICATION KEY</label><input type="password" id="password" value="2026"></div>
+            <button class="action-btn" onclick="authenticateConsole()">LOG IN</button>
+            <div id="loginStatus" style="color: var(--orange); font-size: 10px; margin-top: 8px; text-align: center;"></div>
+        </div>
+    </div>
 
-    if (!activeClient) return res.status(503).json({ error: `Unit [${botType}] Offline.` });
+    <div id="appContainer">
+        <div class="header">
+            <div class="unit-picker">
+                <span style="color:var(--white); margin-right:5px;">ACTIVE UNIT:</span>
+                <button class="unit-btn active" id="btn-exchange" onclick="switchActiveBot('exchange')">EXCHANGE BOT</button>
+                <button class="unit-btn" id="btn-gsc" onclick="switchActiveBot('gsc')">GSC BOT</button>
+                <button class="unit-btn" id="btn-afsf" onclick="switchActiveBot('afsf')">AFSF BOT</button>
+            </div>
 
-    try {
-        const fetchedDms = [];
-        const processedMsgIds = new Set();
+            <div class="nav-tabs">
+                <button class="tab-btn active" id="tab-servers" onclick="switchTab('serverWorkspace', 'tab-servers')">CHANNELS</button>
+                <button class="tab-btn" id="tab-dms" onclick="switchTab('dmWorkspace', 'tab-dms')">DIRECT MESSAGES <span class="badge" id="dmBadge">0</span></button>
+                <button class="tab-btn" id="tab-custom" onclick="switchTab('customWorkspace', 'tab-custom')">CUSTOMIZATION</button>
+            </div>
 
-        // Query active cached users and create/fetch DM channels
-        for (const [userId, user] of activeClient.users.cache) {
-            if (user.bot) continue;
+            <div style="display:flex; gap:5px; align-items:center;">
+                <span style="color:var(--orange); font-size:9px;">STATUS:</span>
+                <button class="st-btn" onclick="changePresence('online')">ONLINE</button>
+                <button class="st-btn" onclick="changePresence('idle')">IDLE</button>
+                <button class="st-btn" onclick="changePresence('dnd')">DND</button>
+                <button class="st-btn" onclick="changePresence('invisible')">OFFLINE</button>
+            </div>
+        </div>
+
+        <!-- TAB 1: SERVER CHANNELS WORKSPACE -->
+        <div id="serverWorkspace" class="view-section active">
+            <div class="module">
+                <h3>[1] SECTORS</h3>
+                <div class="server-grid" id="serverList"></div>
+            </div>
+
+            <div class="module">
+                <h3>[2] CHANNELS</h3>
+                <select id="channelSelect" onchange="loadChannelMessages()"><option value="">SELECT SECTOR...</option></select>
+            </div>
+
+            <div class="module">
+                <h3>[3] LIVE FEED</h3>
+                <div class="feed-box" id="messageFeed">SELECT A CHANNEL TO VIEW MESSAGES</div>
+            </div>
+
+            <div class="module">
+                <h3>[4] ADMIN COMMANDS</h3>
+                <div class="cmd-list" id="commandList"></div>
+            </div>
+        </div>
+
+        <!-- TAB 2: DIRECT MESSAGES WORKSPACE -->
+        <div id="dmWorkspace" class="view-section">
+            <div class="module">
+                <h3>DIRECT MESSAGES LIST</h3>
+                <div class="dm-list" id="dmList">NO RECENT DIRECT MESSAGES</div>
+            </div>
+            <div class="module">
+                <h3>CONVERSATION FEED</h3>
+                <div class="feed-box" id="dmFeed">SELECT A DM CONVERSATION TO VIEW HISTORY</div>
+            </div>
+        </div>
+
+        <!-- TAB 3: CUSTOMIZATION WORKSPACE -->
+        <div id="customWorkspace" class="view-section">
+            <div class="cust-card">
+                <h3 style="color:var(--orange);">BOT IDENTITY & AVATAR</h3>
+                <div style="display:flex; gap:15px; align-items:center;">
+                    <img id="botAvatarPreview" src="https://cdn.discordapp.com/embed/avatars/0.png" style="width:70px; height:70px; border-radius:50%; border:2px solid var(--cyan);">
+                    <div>
+                        <h2 id="botTagDisplay" style="color:var(--white);">BOT_TAG</h2>
+                        <span id="botIdDisplay" style="color:var(--dark-orange); font-size:9px;">ID: 00000000</span>
+                    </div>
+                </div>
+                <div class="form-line">
+                    <label>NEW PROFILE PICTURE (IMAGE URL OR UPLOAD)</label>
+                    <input type="text" id="avatarUrlInput" placeholder="https://i.imgur.com/your-image.png">
+                </div>
+                <div class="form-line">
+                    <label>ABOUT ME / BIO</label>
+                    <textarea id="bioInput" rows="4" placeholder="Enter bot background bio details..."></textarea>
+                </div>
+            </div>
+
+            <div class="cust-card">
+                <h3 style="color:var(--orange);">RICH PRESENCE & STATUS</h3>
+                <div class="form-line">
+                    <label>ONLINE STATUS TYPE</label>
+                    <select id="statusSelect">
+                        <option value="online">ONLINE</option>
+                        <option value="idle">IDLE</option>
+                        <option value="dnd">DO NOT DISTURB</option>
+                        <option value="invisible">INVISIBLE / OFFLINE</option>
+                    </select>
+                </div>
+                <div class="form-line">
+                    <label>ACTIVITY TYPE</label>
+                    <select id="activityTypeSelect">
+                        <option value="PLAYING">PLAYING (e.g., Playing Roblox)</option>
+                        <option value="WATCHING">WATCHING (e.g., Watching Videos)</option>
+                        <option value="LISTENING">LISTENING TO (e.g., Listening to Radio)</option>
+                        <option value="COMPETING">COMPETING IN</option>
+                        <option value="STREAMING">STREAMING</option>
+                    </select>
+                </div>
+                <div class="form-line">
+                    <label>CUSTOM STATUS TEXT</label>
+                    <input type="text" id="activityTextInput" placeholder="e.g., Roblox / Security Operations">
+                </div>
+                <button class="action-btn" onclick="saveCustomizations()">APPLY PROFILE & STATUS UPDATES</button>
+            </div>
+        </div>
+
+        <!-- BOTTOM DISPATCH CONSOLE -->
+        <div class="payload-console">
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <button class="action-btn" style="height: 40px;" onclick="refreshCurrentTab()">REFRESH FEED</button>
+                <div id="statusLine" style="color: var(--orange); font-size: 9px;">STATUS: READY</div>
+            </div>
+            <div>
+                <textarea id="payloadText" placeholder="TYPE DISPATCH OR EXECUTE ADMIN COMMAND..."></textarea>
+            </div>
+            <div>
+                <button class="dispatch-btn" onclick="transmitPayload()">TRANSMIT</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = '', currentApiUrl = '', selectedChannelId = '', activeBot = 'exchange';
+        let currentActiveTab = 'serverWorkspace';
+        let selectedDmUser = null;
+        let lastDmCount = 0;
+
+        async function authenticateConsole() {
+            currentApiUrl = document.getElementById('apiUrl').value.trim();
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value.trim();
 
             try {
-                const dmChannel = user.dmChannel || await user.createDM();
-                const messages = await dmChannel.messages.fetch({ limit: 50 });
-
-                messages.forEach(msg => {
-                    processedMsgIds.add(msg.id);
-                    fetchedDms.push({
-                        id: msg.id,
-                        author: msg.author.username,
-                        authorId: msg.author.id,
-                        avatar: msg.author.displayAvatarURL(),
-                        content: msg.content,
-                        timestamp: msg.createdAt,
-                        isBot: msg.author.bot,
-                        channelId: userId
-                    });
+                const res = await fetch(`${currentApiUrl}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass })
                 });
+                const data = await res.json();
+
+                if (res.ok) {
+                    authToken = data.token;
+                    document.getElementById('loginOverlay').style.display = 'none';
+                    document.getElementById('appContainer').style.display = 'grid';
+                    initializeConsoleData();
+                    setInterval(pollDms, 5000); // Live DM Notification Polling
+                } else {
+                    document.getElementById('loginStatus').innerText = data.error || 'LOGIN FAILED';
+                }
             } catch (err) {
-                // User has DMs disabled or unreachable
-                continue;
+                document.getElementById('loginStatus').innerText = 'CONNECTION ERROR';
             }
         }
 
-        // Include any memory-logged DMs not captured in API loop
-        (dmLogs[botType] || []).forEach(msg => {
-            if (!processedMsgIds.has(msg.id)) {
-                fetchedDms.push(msg);
+        function switchTab(workspaceId, tabId) {
+            currentActiveTab = workspaceId;
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+
+            document.getElementById(workspaceId).classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+
+            if (workspaceId === 'customWorkspace') loadBotProfile();
+            if (workspaceId === 'dmWorkspace') loadDms();
+        }
+
+        function switchActiveBot(unitKey) {
+            activeBot = unitKey;
+            document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${unitKey}`).classList.add('active');
+            initializeConsoleData();
+            if (currentActiveTab === 'customWorkspace') loadBotProfile();
+            if (currentActiveTab === 'dmWorkspace') loadDms();
+        }
+
+        async function initializeConsoleData() {
+            try {
+                const res = await fetch(`${currentApiUrl}/api/servers?bot=${activeBot}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                const list = document.getElementById('serverList');
+                list.innerHTML = '';
+
+                if (data.servers && data.servers.length > 0) {
+                    data.servers.forEach(s => {
+                        const btn = document.createElement('div');
+                        btn.className = 'server-node';
+                        btn.innerText = s.name;
+                        btn.onclick = () => selectServer(s.id, btn);
+                        list.appendChild(btn);
+                    });
+                }
+
+                const cmdRes = await fetch(`${currentApiUrl}/api/commands`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const cmdData = await cmdRes.json();
+                const cmdList = document.getElementById('commandList');
+                cmdList.innerHTML = '';
+                cmdData.commands.forEach(c => {
+                    const node = document.createElement('div');
+                    node.className = 'cmd-node';
+                    node.innerHTML = `<b>${c.name}</b><span style="font-size:8px; color:var(--dark-orange);">${c.dept} - ${c.desc}</span>`;
+                    node.onclick = () => { 
+                        const input = document.getElementById('payloadText');
+                        input.value = c.name;
+                        input.focus();
+                    };
+                    cmdList.appendChild(node);
+                });
+            } catch (err) {
+                console.error(err);
             }
-        });
+        }
 
-        fetchedDms.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        res.json({ dms: fetchedDms });
-    } catch (err) {
-        res.status(500).json({ error: 'FAILED TO FETCH DMS: ' + err.message });
-    }
-});
+        async function loadBotProfile() {
+            const res = await fetch(`${currentApiUrl}/api/bot-profile?bot=${activeBot}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+            const data = await res.json();
+            if (res.ok) {
+                document.getElementById('botAvatarPreview').src = data.avatar;
+                document.getElementById('botTagDisplay').innerText = data.tag;
+                document.getElementById('botIdDisplay').innerText = `ID: ${data.id}`;
+            }
+        }
 
-// Send Direct Message to User
-app.post('/api/send-dm', requireAuth, async (req, res) => {
-    const { botType, userId, message } = req.body;
-    const activeClient = getSelectedClient(botType);
+        async function saveCustomizations() {
+            const avatar = document.getElementById('avatarUrlInput').value.trim();
+            const bio = document.getElementById('bioInput').value.trim();
+            const status = document.getElementById('statusSelect').value;
+            const activityType = document.getElementById('activityTypeSelect').value;
+            const activityText = document.getElementById('activityTextInput').value.trim();
 
-    if (!activeClient) return res.status(503).json({ error: `Unit [${botType}] Offline.` });
+            const res = await fetch(`${currentApiUrl}/api/customize`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ botType: activeBot, avatar, bio, status, activityType, activityText })
+            });
 
-    try {
-        const user = await activeClient.users.fetch(userId);
-        const sentMsg = await user.send(message);
+            const data = await res.json();
+            if (res.ok) {
+                alert("PROFILE & PRESENCE UPDATED.");
+                loadBotProfile();
+            } else {
+                alert("ERROR: " + data.error);
+            }
+        }
 
-        dmLogs[botType].push({
-            id: sentMsg.id,
-            author: activeClient.user.username,
-            authorId: activeClient.user.id,
-            avatar: activeClient.user.displayAvatarURL(),
-            content: message,
-            timestamp: sentMsg.createdAt,
-            isBot: true,
-            channelId: userId
-        });
+        async function pollDms() {
+            const res = await fetch(`${currentApiUrl}/api/dms?bot=${activeBot}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+            const data = await res.json();
+            if (data.dms && data.dms.length > lastDmCount) {
+                const newCount = data.dms.length - lastDmCount;
+                const badge = document.getElementById('dmBadge');
+                badge.style.display = 'block';
+                badge.innerText = newCount;
+            }
+        }
 
-        res.json({ success: true, status: 'DIRECT TRANSMISSION SENT' });
-    } catch (err) {
-        res.status(500).json({ error: 'CANNOT DM USER: ' + err.message });
-    }
-});
+        async function loadDms() {
+            document.getElementById('dmBadge').style.display = 'none';
+            const res = await fetch(`${currentApiUrl}/api/dms?bot=${activeBot}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+            const data = await res.json();
+            const list = document.getElementById('dmList');
+            list.innerHTML = '';
 
-// Get Servers
-app.get('/api/servers', requireAuth, (req, res) => {
-    const botType = req.query.bot || 'exchange';
-    const activeClient = getSelectedClient(botType);
+            if (data.dms && data.dms.length > 0) {
+                lastDmCount = data.dms.length;
+                const users = {};
+                data.dms.forEach(d => users[d.authorId] = d.author);
 
-    if (!activeClient) {
-        return res.status(503).json({ error: `Unit [${botType.toUpperCase()}] is offline.` });
-    }
+                Object.keys(users).forEach(uId => {
+                    const node = document.createElement('div');
+                    node.className = 'dm-node';
+                    node.innerText = `@${users[uId]}`;
+                    node.onclick = () => filterDmConversation(uId, users[uId], data.dms);
+                    list.appendChild(node);
+                });
+            } else {
+                list.innerHTML = 'NO DIRECT MESSAGES YET';
+            }
+        }
 
-    try {
-        const guilds = activeClient.guilds.cache.map(g => ({
-            id: g.id,
-            name: g.name,
-            icon: g.iconURL() || 'https://cdn.discordapp.com/embed/avatars/0.png'
-        }));
-        res.json({ servers: guilds });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+        function filterDmConversation(userId, username, allDms) {
+            selectedDmUser = userId;
+            const feed = document.getElementById('dmFeed');
+            feed.innerHTML = '';
 
-// Get Channels
-app.get('/api/servers/:guildId/channels', requireAuth, async (req, res) => {
-    const botType = req.query.bot || 'exchange';
-    const activeClient = getSelectedClient(botType);
+            const userDms = allDms.filter(d => d.authorId === userId || (d.isBot && d.channelId === userId));
+            userDms.forEach(m => {
+                const card = document.createElement('div');
+                card.className = `msg-card ${m.isBot ? 'bot' : ''}`;
+                card.innerHTML = `
+                    <div class="msg-header"><span>${m.author}</span><span style="font-size:8px;">${new Date(m.timestamp).toLocaleTimeString()}</span></div>
+                    <div>${m.content}</div>
+                `;
+                feed.appendChild(card);
+            });
+            feed.scrollTop = feed.scrollHeight;
+        }
 
-    if (!activeClient) return res.status(503).json({ error: `Unit [${botType.toUpperCase()}] Offline.` });
+        async function selectServer(guildId, element) {
+            document.querySelectorAll('.server-node').forEach(b => b.classList.remove('active'));
+            element.classList.add('active');
 
-    try {
-        const guild = await activeClient.guilds.fetch(req.params.guildId);
-        if (!guild) return res.status(404).json({ error: 'SERVER ACCESS DENIED' });
+            const res = await fetch(`${currentApiUrl}/api/servers/${guildId}/channels?bot=${activeBot}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+            const data = await res.json();
+            const select = document.getElementById('channelSelect');
+            select.innerHTML = '<option value="">SELECT CHANNEL...</option>';
+            if (data.channels) {
+                data.channels.forEach(c => select.innerHTML += `<option value="${c.id}"># ${c.name}</option>`);
+            }
+        }
 
-        const channels = guild.channels.cache
-            .filter(c => c.type === ChannelType.GuildText)
-            .map(c => ({ id: c.id, name: c.name }));
+        async function loadChannelMessages() {
+            selectedChannelId = document.getElementById('channelSelect').value;
+            if (!selectedChannelId) return;
 
-        res.json({ channels });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+            const feed = document.getElementById('messageFeed');
+            feed.innerHTML = "FETCHING MESSAGES...";
 
-// Fetch Channel History
-app.get('/api/channels/:channelId/messages', requireAuth, async (req, res) => {
-    const botType = req.query.bot || 'exchange';
-    const activeClient = getSelectedClient(botType);
+            const res = await fetch(`${currentApiUrl}/api/channels/${selectedChannelId}/messages?bot=${activeBot}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+            const data = await res.json();
 
-    if (!activeClient) return res.status(503).json({ error: `Unit [${botType.toUpperCase()}] Offline.` });
+            feed.innerHTML = '';
+            if (data.messages && data.messages.length > 0) {
+                data.messages.reverse().forEach(m => {
+                    const card = document.createElement('div');
+                    card.className = `msg-card ${m.isBot ? 'bot' : ''}`;
+                    const safeAuthor = m.author.replace(/'/g, "\\'");
+                    const safeContent = m.content.replace(/'/g, "\\'").replace(/\n/g, " ");
 
-    try {
-        const channel = await activeClient.channels.fetch(req.params.channelId);
-        if (!channel) return res.status(404).json({ error: 'CHANNEL NOT FOUND' });
+                    card.innerHTML = `
+                        <div class="msg-header"><span>${m.author}</span><span style="font-size:8px;">${new Date(m.timestamp).toLocaleTimeString()}</span></div>
+                        <div style="word-break: break-word;">${m.content}</div>
+                        <div class="msg-actions">
+                            <button class="sm-btn" onclick="prepareReply('${safeAuthor}')">REPLY</button>
+                            <button class="sm-btn" onclick="forwardMessage('${safeContent}')">FORWARD</button>
+                            <button class="sm-btn del" onclick="deleteMessage('${m.id}')">DELETE</button>
+                        </div>
+                    `;
+                    feed.appendChild(card);
+                });
+                feed.scrollTop = feed.scrollHeight;
+            } else {
+                feed.innerHTML = "NO MESSAGES FOUND";
+            }
+        }
 
-        const fetched = await channel.messages.fetch({ limit: 100 });
-        const messages = fetched.map(m => ({
-            id: m.id,
-            author: m.author.username,
-            authorId: m.author.id,
-            isBot: m.author.bot,
-            content: m.content,
-            timestamp: m.createdAt
-        }));
+        function prepareReply(author) {
+            const input = document.getElementById('payloadText');
+            input.value = `@${author} `;
+            input.focus();
+        }
 
-        res.json({ messages });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+        async function forwardMessage(content) {
+            const targetChannel = prompt("ENTER TARGET CHANNEL ID TO FORWARD MESSAGE:");
+            if (!targetChannel) return;
 
-// Send Channel Message
-app.post('/api/send-message', requireAuth, async (req, res) => {
-    const { channelId, message, botType } = req.body;
-    const activeClient = getSelectedClient(botType);
+            await fetch(`${currentApiUrl}/api/forward-message`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ targetChannelId: targetChannel, content: content, botType: activeBot })
+            });
+            alert("MESSAGE FORWARDED.");
+        }
 
-    if (!activeClient) return res.status(503).json({ error: `Unit [${botType.toUpperCase()}] Offline.` });
+        async function deleteMessage(msgId) {
+            const res = await fetch(`${currentApiUrl}/api/messages/${selectedChannelId}/${msgId}?bot=${activeBot}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            const data = await res.json();
+            if (!res.ok) alert(data.error);
+            loadChannelMessages();
+        }
 
-    try {
-        const channel = await activeClient.channels.fetch(channelId);
-        if (!channel) return res.status(404).json({ error: 'TARGET_CHANNEL_NOT_FOUND' });
+        async function transmitPayload() {
+            const message = document.getElementById('payloadText').value.trim();
+            if (!message) return;
 
-        await channel.send(message);
-        res.json({ success: true, status: 'MESSAGE TRANSMITTED' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+            // DM Mode Transmission
+            if (currentActiveTab === 'dmWorkspace' && selectedDmUser) {
+                await fetch(`${currentApiUrl}/api/send-dm`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                    body: JSON.stringify({ botType: activeBot, userId: selectedDmUser, message })
+                });
+                document.getElementById('payloadText').value = '';
+                setTimeout(loadDms, 500);
+                return;
+            }
 
-// Forward Message
-app.post('/api/forward-message', requireAuth, async (req, res) => {
-    const { targetChannelId, content, botType } = req.body;
-    const activeClient = getSelectedClient(botType);
+            // Channel Mode Transmission
+            if (!selectedChannelId) {
+                alert("PLEASE SELECT A CHANNEL FIRST.");
+                return;
+            }
 
-    if (!activeClient) return res.status(503).json({ error: `Unit [${botType.toUpperCase()}] Offline.` });
+            await fetch(`${currentApiUrl}/api/send-message`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ channelId: selectedChannelId, message, botType: activeBot })
+            });
 
-    try {
-        const channel = await activeClient.channels.fetch(targetChannelId);
-        if (!channel) return res.status(404).json({ error: 'FORWARD_TARGET_NOT_FOUND' });
+            document.getElementById('payloadText').value = '';
+            setTimeout(loadChannelMessages, 800);
+        }
 
-        await channel.send(`⏩ **[FORWARDED TRANSMISSION]**\n${content}`);
-        res.json({ success: true, status: 'TRANSMISSION FORWARDED' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+        function refreshCurrentTab() {
+            if (currentActiveTab === 'serverWorkspace') loadChannelMessages();
+            if (currentActiveTab === 'dmWorkspace') loadDms();
+            if (currentActiveTab === 'customWorkspace') loadBotProfile();
+        }
 
-// Delete Message
-app.delete('/api/messages/:channelId/:messageId', requireAuth, async (req, res) => {
-    const botType = req.query.bot || 'exchange';
-    const activeClient = getSelectedClient(botType);
-
-    if (!activeClient) return res.status(503).json({ error: `Unit [${botType.toUpperCase()}] Offline.` });
-
-    try {
-        const channel = await activeClient.channels.fetch(req.params.channelId);
-        const targetMessage = await channel.messages.fetch(req.params.messageId);
-
-        await targetMessage.delete();
-        res.json({ success: true, status: 'MESSAGE PURGED' });
-    } catch (err) {
-        res.status(500).json({ error: 'PERMISSIONS INSUFFICIENT OR NOT FOUND: ' + err.message });
-    }
-});
-
-// Commands Endpoint
-app.get('/api/commands', requireAuth, (req, res) => {
-    res.json({
-        commands: [
-            { name: "!purge [amount]", dept: "Moderation", desc: "Bulk deletes up to 100 messages." },
-            { name: "!kick [user] [reason]", dept: "Moderation", desc: "Kicks a member." },
-            { name: "!ban [user] [reason]", dept: "Moderation", desc: "Bans a member." },
-            { name: "!unban [userId]", dept: "Moderation", desc: "Revokes a user ban by ID." },
-            { name: "!mute [user] [time]", dept: "Moderation", desc: "Timeouts/mutes a member." },
-            { name: "!unmute [user]", dept: "Moderation", desc: "Removes timeout from member." },
-            { name: "!warn [user] [reason]", dept: "Security", desc: "Issues a logged warning." },
-            { name: "!warnings [user]", dept: "Security", desc: "Displays user warning history." },
-            { name: "!clearwarns [user]", dept: "Security", desc: "Clears all user warnings." },
-            { name: "!lockdown", dept: "Security", desc: "Locks channel send permissions." },
-            { name: "!unlock", dept: "Security", desc: "Restores channel send permissions." },
-            { name: "!role add [user] [role]", dept: "Role Mgmt", desc: "Assigns a role to a user." },
-            { name: "!role remove [user] [role]", dept: "Role Mgmt", desc: "Removes a role from a user." },
-            { name: "!slowmode [sec]", dept: "Channel Ops", desc: "Sets channel slowmode delay." },
-            { name: "!nick [user] [name]", dept: "User Control", desc: "Changes display name." },
-            { name: "!announcement [text]", dept: "Utility", desc: "Posts a server announcement." },
-            { name: "!embed [title] | [text]", dept: "Utility", desc: "Sends an embedded message." },
-            { name: "!userinfo [user]", dept: "Information", desc: "Fetches user profile details." },
-            { name: "!serverinfo", dept: "Information", desc: "Displays server statistics." },
-            { name: "!botstatus", dept: "System", desc: "Outputs bot uptime & memory usage." },
-            { name: "!nuke", dept: "Admin Ops", desc: "Clones and deletes channel." },
-            { name: "!pin [msgId]", dept: "Channel Ops", desc: "Pins message in channel." },
-            { name: "!unpin [msgId]", dept: "Channel Ops", desc: "Unpins message from channel." },
-            { name: "!dm [user] [msg]", dept: "Admin Ops", desc: "Sends direct message." },
-            { name: "!say [msg]", dept: "Admin Ops", desc: "Forces bot to repeat message." }
-        ]
-    });
-});
-
-// Quick Presence Status Endpoint
-app.post('/api/set-status', requireAuth, async (req, res) => {
-    const { status, botType } = req.body;
-    const activeClient = getSelectedClient(botType);
-
-    if (!activeClient) return res.status(400).json({ error: `Unit [${botType}] Unavailable.` });
-
-    try {
-        activeClient.user.setPresence({ status });
-        res.json({ success: true, status: `Status updated to ${status}` });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-if (BOT_TOKEN) clients.exchange.login(BOT_TOKEN);
-if (GSC_BOT_TOKEN) clients.gsc.login(GSC_BOT_TOKEN);
-if (AFSF_BOT_TOKEN) clients.afsf.login(AFSF_BOT_TOKEN);
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Backend active on port ${PORT}`));
+        async function changePresence(statusType) {
+            await fetch(`${currentApiUrl}/api/set-status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ status: statusType, botType: activeBot })
+            });
+            document.getElementById('statusLine').innerText = `STATUS: ${statusType.toUpperCase()}`;
+        }
+    </script>
+</body>
+</html>
