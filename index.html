@@ -5,9 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>COMMAND OPERATIONAL CONSOLE</title>
     <style>
-        :root { --main-bg: #030406; --cyan: #29fcfc; --dark-cyan: #148080; --orange: #fc8a29; --dark-orange: #7c4414; --white: #e1e6ed; --red: #ff4d4d; }
+        :root { 
+            --main-bg: #030406; 
+            --cyan: #29fcfc; 
+            --dark-cyan: #148080; 
+            --orange: #fc8a29; 
+            --dark-orange: #7c4414; 
+            --white: #e1e6ed; 
+            --red: #ff4d4d; 
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'OCR A Extended', monospace, 'Courier New'; font-size: 11px; text-transform: uppercase; }
-        body { background: var(--main-bg); color: var(--cyan); height: 100vh; overflow: hidden; }
+        html, body { background: var(--main-bg); color: var(--cyan); height: 100vh; width: 100vw; overflow: hidden; }
 
         #loginOverlay { position: fixed; inset: 0; background: rgba(3,4,6,0.95); display: flex; justify-content: center; align-items: center; z-index: 2000; }
         .login-module { background: var(--main-bg); border: 2px solid var(--orange); padding: 30px; width: 340px; }
@@ -19,34 +27,61 @@
         .action-btn { width: 100%; background: transparent; color: var(--orange); border: 1px solid var(--orange); padding: 10px; cursor: pointer; font-weight: bold; }
         .action-btn:hover { background: var(--dark-orange); color: var(--white); }
 
-        #appContainer { display: none; height: 100vh; grid-template-rows: 32px 1fr 180px; }
-        .header { background: rgba(30,30,30,0.5); border-bottom: 1px solid var(--dark-cyan); padding: 0 15px; display: flex; align-items: center; justify-content: space-between; }
+        /* Locked Layout Heights to Prevent Pushing Console Offscreen */
+        #appContainer { 
+            display: none; 
+            height: 100vh; 
+            width: 100vw;
+            grid-template-rows: 36px calc(100vh - 176px) 140px; 
+            overflow: hidden;
+        }
+
+        .header { background: rgba(30,30,30,0.5); border-bottom: 1px solid var(--dark-cyan); padding: 0 15px; display: flex; align-items: center; justify-content: space-between; height: 36px; }
 
         .unit-picker { display: flex; gap: 8px; align-items: center; }
         .unit-btn { background: #111; border: 1px solid var(--dark-cyan); color: var(--cyan); padding: 4px 8px; cursor: pointer; font-size: 9px; }
         .unit-btn.active { border-color: var(--orange); color: var(--orange); background: rgba(252,138,41,0.1); }
 
-        .workspace { display: grid; grid-template-columns: 200px 220px 1fr 240px; gap: 1px; border-bottom: 1px solid var(--dark-cyan); }
-        .module { background: rgba(10,10,10,0.5); border: 1px solid var(--dark-cyan); position: relative; padding: 15px 10px; overflow: hidden; display: flex; flex-direction: column; }
-        .module h3 { font-size: 10px; color: var(--white); background: var(--dark-cyan); padding: 3px 8px; position: absolute; top: 0; left: 0; width: 100%; }
+        .workspace { 
+            display: grid; 
+            grid-template-columns: 200px 220px 1fr 280px; 
+            gap: 1px; 
+            border-bottom: 1px solid var(--dark-cyan); 
+            overflow: hidden; 
+            min-height: 0; 
+        }
 
-        .server-grid, .cmd-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; margin-top: 15px; }
+        .module { background: rgba(10,10,10,0.5); border: 1px solid var(--dark-cyan); position: relative; padding: 25px 10px 10px 10px; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+        .module h3 { font-size: 10px; color: var(--white); background: var(--dark-cyan); padding: 3px 8px; position: absolute; top: 0; left: 0; width: 100%; z-index: 5; }
+
+        .server-grid, .cmd-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; height: 100%; }
         .server-node, .cmd-node { display: flex; flex-direction: column; background: rgba(20,20,20,0.8); padding: 6px; border: 1px solid transparent; cursor: pointer; }
         .server-node:hover, .server-node.active, .cmd-node:hover { border-color: var(--cyan); background: rgba(41,252,252,0.1); }
 
-        #channelSelect { width: 100%; background: #111; border: 1px solid var(--dark-cyan); color: var(--cyan); padding: 8px; margin-top: 15px; }
+        #channelSelect { width: 100%; background: #111; border: 1px solid var(--dark-cyan); color: var(--cyan); padding: 8px; }
 
-        .feed-box { margin-top: 15px; overflow-y: scroll; flex: 1; display: flex; flex-direction: column; gap: 8px; max-height: calc(100vh - 240px); padding-right: 5px; }
+        .feed-box { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; height: 100%; padding-right: 5px; min-height: 0; }
         .msg-card { background: rgba(15,15,15,0.9); border: 1px solid var(--dark-cyan); padding: 6px; }
         .msg-card.bot { border-color: var(--orange); }
         .msg-header { display: flex; justify-content: space-between; color: var(--white); font-weight: bold; margin-bottom: 4px; }
         .msg-actions { margin-top: 5px; display: flex; gap: 5px; }
-        .sm-btn { background: transparent; border: 1px solid var(--cyan); color: var(--cyan); padding: 2px 4px; cursor: pointer; font-size: 8px; }
+        .sm-btn { background: transparent; border: 1px solid var(--cyan); color: var(--cyan); padding: 2px 6px; cursor: pointer; font-size: 8px; }
         .sm-btn.del { border-color: var(--red); color: var(--red); }
 
-        .payload-console { background: #080a0f; border-top: 2px solid var(--orange); display: grid; grid-template-columns: 200px 1fr; gap: 15px; padding: 10px; }
-        textarea { width: 100%; height: 90px; background: rgba(3,4,6,0.6); border: 1px solid var(--orange); color: var(--white); padding: 8px; outline: none; resize: none; }
-        .dispatch-btn { width: 100%; height: 90px; background: transparent; color: var(--orange); border: 2px solid var(--orange); font-size: 1rem; cursor: pointer; font-weight: bold; }
+        /* Dedicated Fixed Bottom Console */
+        .payload-console { 
+            background: #080a0f; 
+            border-top: 2px solid var(--orange); 
+            display: grid; 
+            grid-template-columns: 200px 1fr 140px; 
+            gap: 15px; 
+            padding: 10px; 
+            height: 140px; 
+            box-sizing: border-box;
+        }
+
+        textarea { width: 100%; height: 100%; background: rgba(3,4,6,0.6); border: 1px solid var(--orange); color: var(--white); padding: 8px; outline: none; resize: none; font-size: 12px; }
+        .dispatch-btn { width: 100%; height: 100%; background: transparent; color: var(--orange); border: 2px solid var(--orange); font-size: 1rem; cursor: pointer; font-weight: bold; }
         .dispatch-btn:hover { background: var(--dark-orange); color: var(--white); }
         .st-btn { background: #111; border: 1px solid var(--dark-cyan); color: var(--cyan); padding: 2px 6px; cursor: pointer; font-size: 9px; }
     </style>
@@ -93,23 +128,25 @@
             </div>
 
             <div class="module">
-                <h3>[3] LIVE FEED & DEEP HISTORY</h3>
-                <div class="feed-box" id="messageFeed">SELECT CHANNEL TO VIEW MESSAGES</div>
+                <h3>[3] LIVE FEED & HISTORY</h3>
+                <div class="feed-box" id="messageFeed">SELECT A CHANNEL TO VIEW MESSAGES</div>
             </div>
 
             <div class="module">
-                <h3>[4] ADMINISTRATIVE COMMANDS</h3>
+                <h3>[4] ADMIN COMMANDS</h3>
                 <div class="cmd-list" id="commandList"></div>
             </div>
         </div>
 
-        <div class="payload-console module">
-            <div>
-                <button class="action-btn" style="height: 40px; margin-bottom: 5px;" onclick="loadChannelMessages()">REFRESH HISTORY</button>
-                <div id="statusLine" style="color: var(--orange);">READY</div>
+        <div class="payload-console">
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <button class="action-btn" style="height: 40px;" onclick="loadChannelMessages()">REFRESH FEED</button>
+                <div id="statusLine" style="color: var(--orange); font-size: 9px;">STATUS: READY</div>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 140px; gap: 10px;">
+            <div>
                 <textarea id="payloadText" placeholder="TYPE DISPATCH OR EXECUTE ADMIN COMMAND..."></textarea>
+            </div>
+            <div>
                 <button class="dispatch-btn" onclick="transmitPayload()">TRANSMIT</button>
             </div>
         </div>
@@ -123,18 +160,24 @@
             const user = document.getElementById('username').value.trim();
             const pass = document.getElementById('password').value.trim();
 
-            const res = await fetch(`${currentApiUrl}/api/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: user, password: pass })
-            });
-            const data = await res.json();
+            try {
+                const res = await fetch(`${currentApiUrl}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass })
+                });
+                const data = await res.json();
 
-            if (res.ok) {
-                authToken = data.token;
-                document.getElementById('loginOverlay').style.display = 'none';
-                document.getElementById('appContainer').style.display = 'grid';
-                initializeConsoleData();
+                if (res.ok) {
+                    authToken = data.token;
+                    document.getElementById('loginOverlay').style.display = 'none';
+                    document.getElementById('appContainer').style.display = 'grid';
+                    initializeConsoleData();
+                } else {
+                    document.getElementById('loginStatus').innerText = data.error || 'LOGIN FAILED';
+                }
+            } catch (err) {
+                document.getElementById('loginStatus').innerText = 'CONNECTION ERROR';
             }
         }
 
@@ -147,35 +190,42 @@
         }
 
         async function initializeConsoleData() {
-            const res = await fetch(`${currentApiUrl}/api/servers?bot=${activeBot}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
-            const data = await res.json();
-            const list = document.getElementById('serverList');
-            list.innerHTML = '';
+            try {
+                const res = await fetch(`${currentApiUrl}/api/servers?bot=${activeBot}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                const list = document.getElementById('serverList');
+                list.innerHTML = '';
 
-            if (data.servers) {
-                data.servers.forEach(s => {
-                    const btn = document.createElement('div');
-                    btn.className = 'server-node';
-                    btn.innerText = s.name;
-                    btn.onclick = () => selectServer(s.id, btn);
-                    list.appendChild(btn);
+                if (data.servers && data.servers.length > 0) {
+                    data.servers.forEach(s => {
+                        const btn = document.createElement('div');
+                        btn.className = 'server-node';
+                        btn.innerText = s.name;
+                        btn.onclick = () => selectServer(s.id, btn);
+                        list.appendChild(btn);
+                    });
+                } else {
+                    list.innerHTML = `<span style="color:var(--red); padding:10px;">${data.error || 'NO SERVERS FOUND FOR THIS BOT'}</span>`;
+                }
+
+                const cmdRes = await fetch(`${currentApiUrl}/api/commands`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const cmdData = await cmdRes.json();
+                const cmdList = document.getElementById('commandList');
+                cmdList.innerHTML = '';
+                cmdData.commands.forEach(c => {
+                    const node = document.createElement('div');
+                    node.className = 'cmd-node';
+                    node.innerHTML = `<b>${c.name}</b><span style="font-size:8px; color:var(--dark-orange);">${c.dept} - ${c.desc}</span>`;
+                    node.onclick = () => { 
+                        const input = document.getElementById('payloadText');
+                        input.value = c.name;
+                        input.focus();
+                    };
+                    cmdList.appendChild(node);
                 });
-            } else {
-                list.innerHTML = `<span style="color:var(--red);">${data.error}</span>`;
+            } catch (err) {
+                console.error(err);
             }
-
-            // Fetch Administrative Commands
-            const cmdRes = await fetch(`${currentApiUrl}/api/commands`, { headers: { 'Authorization': `Bearer ${authToken}` } });
-            const cmdData = await cmdRes.json();
-            const cmdList = document.getElementById('commandList');
-            cmdList.innerHTML = '';
-            cmdData.commands.forEach(c => {
-                const node = document.createElement('div');
-                node.className = 'cmd-node';
-                node.innerHTML = `<b>${c.name}</b><span style="font-size:8px; color:var(--dark-orange);">${c.dept} - ${c.desc}</span>`;
-                node.onclick = () => { document.getElementById('payloadText').value = c.name; };
-                cmdList.appendChild(node);
-            });
         }
 
         async function selectServer(guildId, element) {
@@ -186,9 +236,11 @@
             const data = await res.json();
             const select = document.getElementById('channelSelect');
             select.innerHTML = '<option value="">SELECT CHANNEL...</option>';
-            data.channels.forEach(c => {
-                select.innerHTML += `<option value="${c.id}"># ${c.name}</option>`;
-            });
+            if (data.channels) {
+                data.channels.forEach(c => {
+                    select.innerHTML += `<option value="${c.id}"># ${c.name}</option>`;
+                });
+            }
         }
 
         async function loadChannelMessages() {
@@ -196,35 +248,45 @@
             if (!selectedChannelId) return;
 
             const feed = document.getElementById('messageFeed');
-            feed.innerHTML = "FETCHING TRANSMISSIONS...";
+            feed.innerHTML = "FETCHING MESSAGES...";
 
             const res = await fetch(`${currentApiUrl}/api/channels/${selectedChannelId}/messages?bot=${activeBot}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
             const data = await res.json();
 
             feed.innerHTML = '';
-            data.messages.forEach(m => {
-                const card = document.createElement('div');
-                card.className = `msg-card ${m.isBot ? 'bot' : ''}`;
-                card.innerHTML = `
-                    <div class="msg-header"><span>${m.author}</span><span style="font-size:8px;">${new Date(m.timestamp).toLocaleTimeString()}</span></div>
-                    <div>${m.content}</div>
-                    <div class="msg-actions">
-                        <button class="sm-btn" onclick="prepareReply('${m.author}')">REPLY</button>
-                        <button class="sm-btn" onclick="forwardMessage('${m.content.replace(/'/g, "\\'")}')">FORWARD</button>
-                        <button class="sm-btn del" onclick="deleteMessage('${m.id}')">DELETE</button>
-                    </div>
-                `;
-                feed.appendChild(card);
-            });
+            if (data.messages && data.messages.length > 0) {
+                data.messages.reverse().forEach(m => {
+                    const card = document.createElement('div');
+                    card.className = `msg-card ${m.isBot ? 'bot' : ''}`;
+                    
+                    const safeAuthor = m.author.replace(/'/g, "\\'");
+                    const safeContent = m.content.replace(/'/g, "\\'").replace(/\n/g, " ");
+
+                    card.innerHTML = `
+                        <div class="msg-header"><span>${m.author}</span><span style="font-size:8px;">${new Date(m.timestamp).toLocaleTimeString()}</span></div>
+                        <div style="word-break: break-word;">${m.content}</div>
+                        <div class="msg-actions">
+                            <button class="sm-btn" onclick="prepareReply('${safeAuthor}')">REPLY</button>
+                            <button class="sm-btn" onclick="forwardMessage('${safeContent}')">FORWARD</button>
+                            <button class="sm-btn del" onclick="deleteMessage('${m.id}')">DELETE</button>
+                        </div>
+                    `;
+                    feed.appendChild(card);
+                });
+                feed.scrollTop = feed.scrollHeight;
+            } else {
+                feed.innerHTML = "NO MESSAGES FOUND";
+            }
         }
 
         function prepareReply(author) {
-            document.getElementById('payloadText').value = `@${author} `;
-            document.getElementById('payloadText').focus();
+            const input = document.getElementById('payloadText');
+            input.value = `@${author} `;
+            input.focus();
         }
 
         async function forwardMessage(content) {
-            const targetChannel = prompt("ENTER TARGET CHANNEL ID TO FORWARD:");
+            const targetChannel = prompt("ENTER TARGET CHANNEL ID TO FORWARD MESSAGE:");
             if (!targetChannel) return;
 
             await fetch(`${currentApiUrl}/api/forward-message`, {
@@ -232,7 +294,7 @@
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                 body: JSON.stringify({ targetChannelId: targetChannel, content: content, botType: activeBot })
             });
-            alert("TRANSMISSION FORWARDED.");
+            alert("MESSAGE FORWARDED.");
         }
 
         async function deleteMessage(msgId) {
@@ -247,7 +309,11 @@
 
         async function transmitPayload() {
             const message = document.getElementById('payloadText').value.trim();
-            if (!selectedChannelId || !message) return;
+            if (!selectedChannelId) {
+                alert("PLEASE SELECT A CHANNEL FIRST.");
+                return;
+            }
+            if (!message) return;
 
             await fetch(`${currentApiUrl}/api/send-message`, {
                 method: 'POST',
@@ -256,7 +322,7 @@
             });
 
             document.getElementById('payloadText').value = '';
-            setTimeout(loadChannelMessages, 1000);
+            setTimeout(loadChannelMessages, 800);
         }
 
         async function changePresence(statusType) {
@@ -265,7 +331,7 @@
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                 body: JSON.stringify({ status: statusType, botType: activeBot })
             });
-            document.getElementById('statusLine').innerText = `[${activeBot.toUpperCase()}] STATUS: ${statusType.toUpperCase()}`;
+            document.getElementById('statusLine').innerText = `STATUS: ${statusType.toUpperCase()}`;
         }
     </script>
 </body>
