@@ -43,7 +43,6 @@
         .view-section { display: none; height: 100%; width: 100%; }
         .view-section.active { display: grid; }
 
-        /* Server View Workspace */
         #serverWorkspace { grid-template-columns: 200px 220px 1fr 280px; gap: 1px; border-bottom: 1px solid var(--dark-cyan); overflow: hidden; min-height: 0; }
 
         .module { background: rgba(10,10,10,0.5); border: 1px solid var(--dark-cyan); position: relative; padding: 25px 10px 10px 10px; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
@@ -61,11 +60,9 @@
         .sm-btn { background: transparent; border: 1px solid var(--cyan); color: var(--cyan); padding: 2px 6px; cursor: pointer; font-size: 8px; }
         .sm-btn.del { border-color: var(--red); color: var(--red); }
 
-        /* Customization Page */
         #customWorkspace { grid-template-columns: 1fr 1fr; gap: 15px; padding: 15px; overflow-y: auto; }
         .cust-card { background: rgba(10,10,10,0.8); border: 1px solid var(--orange); padding: 15px; display: flex; flex-direction: column; gap: 12px; }
 
-        /* DMs Workspace */
         #dmWorkspace { grid-template-columns: 260px 1fr; gap: 1px; border-bottom: 1px solid var(--dark-cyan); overflow: hidden; }
 
         .payload-console { background: #080a0f; border-top: 2px solid var(--orange); display: grid; grid-template-columns: 200px 1fr 140px; gap: 15px; padding: 10px; height: 140px; }
@@ -78,14 +75,17 @@
 <body>
 
     <div id="loginOverlay">
-        <div class="login-module">
+        <form class="login-module" id="loginForm" onsubmit="event.preventDefault(); authenticateConsole();">
             <h2>COMMAND ACCESS</h2>
-            <div class="form-line"><label>BACKEND API LINK</label><input type="text" id="apiUrl" placeholder="https://your-backend.onrender.com"></div>
+            <div class="form-line">
+                <label>BACKEND API LINK (LEAVE BLANK IF SAME SERVER)</label>
+                <input type="text" id="apiUrl" placeholder="http://localhost:3000">
+            </div>
             <div class="form-line"><label>OPERATOR USERNAME</label><input type="text" id="username" value="admin"></div>
             <div class="form-line"><label>AUTHENTICATION KEY</label><input type="password" id="password" value="2026"></div>
-            <button class="action-btn" onclick="authenticateConsole()">LOG IN</button>
+            <button type="submit" class="action-btn">LOG IN</button>
             <div id="loginStatus" style="color: var(--orange); font-size: 10px; margin-top: 8px; text-align: center;"></div>
-        </div>
+        </form>
     </div>
 
     <div id="appContainer">
@@ -112,7 +112,7 @@
             </div>
         </div>
 
-        <!-- TAB 1: SERVER CHANNELS WORKSPACE -->
+        <!-- TAB 1: CHANNELS -->
         <div id="serverWorkspace" class="view-section active">
             <div class="module">
                 <h3>[1] SECTORS</h3>
@@ -135,7 +135,7 @@
             </div>
         </div>
 
-        <!-- TAB 2: DIRECT MESSAGES WORKSPACE -->
+        <!-- TAB 2: DIRECT MESSAGES -->
         <div id="dmWorkspace" class="view-section">
             <div class="module">
                 <h3>DIRECT MESSAGES LIST</h3>
@@ -147,7 +147,7 @@
             </div>
         </div>
 
-        <!-- TAB 3: CUSTOMIZATION WORKSPACE -->
+        <!-- TAB 3: CUSTOMIZATION -->
         <div id="customWorkspace" class="view-section">
             <div class="cust-card">
                 <h3 style="color:var(--orange);">BOT IDENTITY & AVATAR</h3>
@@ -159,7 +159,7 @@
                     </div>
                 </div>
                 <div class="form-line">
-                    <label>NEW PROFILE PICTURE (IMAGE URL OR UPLOAD)</label>
+                    <label>NEW PROFILE PICTURE (IMAGE URL)</label>
                     <input type="text" id="avatarUrlInput" placeholder="https://i.imgur.com/your-image.png">
                 </div>
                 <div class="form-line">
@@ -193,11 +193,11 @@
                     <label>CUSTOM STATUS TEXT</label>
                     <input type="text" id="activityTextInput" placeholder="e.g., Roblox / Security Operations">
                 </div>
-                <button class="action-btn" onclick="saveCustomizations()">APPLY PROFILE & STATUS UPDATES</button>
+                <button class="action-btn" type="button" onclick="saveCustomizations()">APPLY PROFILE & STATUS UPDATES</button>
             </div>
         </div>
 
-        <!-- BOTTOM DISPATCH CONSOLE -->
+        <!-- BOTTOM CONSOLE -->
         <div class="payload-console">
             <div style="display: flex; flex-direction: column; gap: 5px;">
                 <button class="action-btn" style="height: 40px;" onclick="refreshCurrentTab()">REFRESH FEED</button>
@@ -219,9 +219,15 @@
         let lastDmCount = 0;
 
         async function authenticateConsole() {
-            currentApiUrl = document.getElementById('apiUrl').value.trim();
+            const rawUrl = document.getElementById('apiUrl').value.trim();
+            // Default to current page domain if input is left blank
+            currentApiUrl = rawUrl ? rawUrl.replace(/\/$/, "") : window.location.origin;
+
             const user = document.getElementById('username').value.trim();
             const pass = document.getElementById('password').value.trim();
+            const statusDiv = document.getElementById('loginStatus');
+
+            statusDiv.innerText = "AUTHENTICATING...";
 
             try {
                 const res = await fetch(`${currentApiUrl}/api/login`, {
@@ -231,17 +237,18 @@
                 });
                 const data = await res.json();
 
-                if (res.ok) {
+                if (res.ok && data.token) {
                     authToken = data.token;
                     document.getElementById('loginOverlay').style.display = 'none';
                     document.getElementById('appContainer').style.display = 'grid';
                     initializeConsoleData();
-                    setInterval(pollDms, 5000); // Live DM Notification Polling
+                    setInterval(pollDms, 5000);
                 } else {
-                    document.getElementById('loginStatus').innerText = data.error || 'LOGIN FAILED';
+                    statusDiv.innerText = data.error || 'INVALID CREDENTIALS';
                 }
             } catch (err) {
-                document.getElementById('loginStatus').innerText = 'CONNECTION ERROR';
+                console.error(err);
+                statusDiv.innerText = 'CONNECTION ERROR - CHECK URL OR BACKEND STATUS';
             }
         }
 
@@ -468,7 +475,6 @@
             const message = document.getElementById('payloadText').value.trim();
             if (!message) return;
 
-            // DM Mode Transmission
             if (currentActiveTab === 'dmWorkspace' && selectedDmUser) {
                 await fetch(`${currentApiUrl}/api/send-dm`, {
                     method: 'POST',
@@ -480,7 +486,6 @@
                 return;
             }
 
-            // Channel Mode Transmission
             if (!selectedChannelId) {
                 alert("PLEASE SELECT A CHANNEL FIRST.");
                 return;
